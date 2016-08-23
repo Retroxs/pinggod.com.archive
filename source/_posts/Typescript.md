@@ -33,7 +33,316 @@ x += 1;
 
 TypeScript 编译器既可以将 source map 信息置于生成的 `.js` 文件中，也可以创建独立的 `.map` 文件，便于开发者在代码运行阶段设置断点、审查变量。此外，TypeScript 还可以使用 decorator 拦截代码，为不同的模块系统生成模块加载代码，解析 JSX 等。
 
+## Usage
+
+这一节介绍 TypeScirpt 的一些基础特性，算是抛砖引玉，希望引起大家尝试和使用 TypeScript 的兴趣。首先，从最简单的类型标注开始：
+
+```ts
+// 原始值
+const isDone: boolean = false;
+const amount: number = 6;
+const address: string = 'beijing';
+const greeting: string = `Hello World`;
+
+// 数组
+const list: number[] = [1, 2, 3];
+const list: Array<number> = [1, 2, 3];
+
+// 元组
+const name: [string, string] = ['Sean', 'Sun'];
+
+// 枚举
+enum Color {
+    Red,
+    Green,
+    Blue
+};
+const c: Color = Color.Green;
+
+// 任意值：可以调用任意方法
+let anyTypes: any = 4;
+anyTypes = 'any';
+anyTypes = false
+
+// 空值
+function doSomething (): void {
+    return undefined;
+}
+
+// 类型断言
+let someValue: any = "this is a string";
+let strLength: number = (someValue as string).length;
+```
+
+TypeScript 中的 Interface 可以看做是一个集合，这个集合是对对象、类等内部结构的约定：
+
+```ts
+// 定义接口 Coords
+// 该接口包含 number 类型的 x，string 类型的 y
+// 其中 y 是可选类型，即是否包含该属性无所谓
+interface Coords {
+	x: number;
+	y?: string;
+};
+
+// 定义函数 where
+// 该函数接受一个 Coords 类型的参数 l
+function where (l: Coords) {
+	// doSomething
+}
+
+const a = { x: 100 };
+const b = { x: 100, y1: 'abc' };
+
+// a 拥有 number 类型的 x，可以传递给 where
+where(a);
+// b 拥有 number 类型的 x 和 string 类型的 y1，可以传递给 where
+where(b);
+
+// 下面这种调用方式将会报错，虽然它和 where(b) 看起来是一致的
+// 区别在于这里传递的是一个对象字面量
+// 对象字面量会被特殊对待并经过额外的属性检查
+// 如果对象字面量中存在目标类型中未声明的属性，则抛出错误
+where({ x: 100, y1: 'abc' });
+
+// 最好的解决方式是为接口添加索引签名
+// 添加如下所示的索引签名后，对象字面量可以有任意数量的属性
+// 只要属性不是 x 和 y，其他属性可以是 any 类型
+interface Coords {
+	x: number;
+	y?: string;
+    [propName: string]: any
+};
+```
+
+上面的代码演示了接口对对象的约束，此外，接口还常用于约束函数的行为：
+
+```ts
+// CheckType 包含一个调用签名
+// 该调用签名声明了 getType 函数需要接收一个 any 类型的参数，并最终返回一个 string 类型的结果
+interface CheckType {
+    (data: any): string;
+};
+
+const getType: CheckType = (data: any) : string => {
+    return Object.prototype.toString.call(data);
+}
+
+getType('abc');
+// => '[object String]'
+```
+
+与老牌强类型语言 C#、Java 相同的是，Interface 也可以用于约束类的行为：
+
+```ts
+interface ClockConstructor {
+    new (hour: number, minute: number): ClockInterface;
+}
+interface ClockInterface {
+    tick();
+}
+
+function createClock(ctor: ClockConstructor, hour: number, minute: number): ClockInterface {
+    return new ctor(hour, minute);
+}
+
+class DigitalClock implements ClockInterface {
+    constructor(h: number, m: number) { }
+    tick() {
+        console.log("beep beep");
+    }
+}
+class AnalogClock implements ClockInterface {
+    constructor(h: number, m: number) { }
+    tick() {
+        console.log("tick tock");
+    }
+}
+
+let digital = createClock(DigitalClock, 12, 17);
+let analog = createClock(AnalogClock, 7, 32);
+```
+
+#### class
+
+除了 ES6 增加的 Class 用法，TypeScript 还增加了 C++、Java 中常见的 public / protected / private 限定符，限定变量或函数的使用范围。TypeScript 使用的是结构性类型系统，只要两种类型的成员类型相同，则认为这两种类型是兼容和一致的，但比较包含 private 和 protected 成员的类型时，只有他们是来自同一处的统一类型成员时才会被认为是兼容的：
+
+```ts
+class Animal {
+    private name: string;
+    constructor(theName: string) { this.name = theName; }
+}
+
+class Rhino extends Animal {
+    constructor() { super("Rhino"); }
+}
+
+class Employee {
+    private name: string;
+    constructor(theName: string) { this.name = theName; }
+}
+
+let animal = new Animal("Goat");
+let rhino = new Rhino();
+let employee = new Employee("Bob");
+
+animal = rhino;
+// Error: Animal and Employee are not compatible
+animal = employee;
+```
+
+抽象类是供其他类继承的基类，与接口不同的是，抽象类可以包含成员方法的实现细节，但抽不可以包含抽象方法的实现细节：
+
+```ts
+abstract class Animal {
+    // 抽象方法
+    abstract makeSound(): void;
+    // 成员方法
+    move(): void {
+        console.log('roaming the earch...');
+    }
+}
+```
+
+#### function
+
+添加类型机制的 TypeScript 在函数上最可以秀的一块就是函数重载了：
+
+```ts
+let suits = ["hearts", "spades", "clubs", "diamonds"];
+
+function pickCard(x: {suit: string; card: number; }[]): number;
+function pickCard(x: number): {suit: string; card: number; };
+function pickCard(x): any {
+    // Check to see if we're working with an object/array
+    // if so, they gave us the deck and we'll pick the card
+    if (typeof x == "object") {
+        let pickedCard = Math.floor(Math.random() * x.length);
+        return pickedCard;
+    }
+    // Otherwise just let them pick the card
+    else if (typeof x == "number") {
+        let pickedSuit = Math.floor(x / 13);
+        return { suit: suits[pickedSuit], card: x % 13 };
+    }
+}
+
+let myDeck = [{ suit: "diamonds", card: 2 }, { suit: "spades", card: 10 }, { suit: "hearts", card: 4 }];
+let pickedCard1 = myDeck[pickCard(myDeck)];
+let pickedCard2 = pickCard(15);
+
+console.log("card: " + pickedCard1.card + " of " + pickedCard1.suit);
+console.log("card: " + pickedCard2.card + " of " + pickedCard2.suit);
+```
+
+编译器首先会尝试匹配第一个函数重载的声明，如果类型匹配成功就执行，否则继续匹配其他的重载声明，因此参数的针对性越强的函数重载，越要靠前声明。
+
+#### genrics
+
+```ts
+function identity<T>(arg: T[]): T[] {
+    console.log(arg.length);
+    return arg;
+}
+
+let myIdentity: {<T>(arg: T[]): T[]} = identity;
+```
+
+上面的代码展示了泛型的基本用法，这里的 `<T>` 称为泛型变量，通过这个声明，我们可以确定传入的参数类型和返回的数据类型是一致的，一旦确定了传入的参数类型，也就确定了返回的数据类型。`myIdentity` 使用了带有调用签名的对象字面量定义泛型函数，实际上可以结合接口，写出更简洁的泛型接口：
+
+```ts
+interface IdentityFn {
+     <T>(arg: T[]): T[];
+};
+
+let myIdentity: IdentityFn = identity;
+```
+
+如果同一个泛型变量在接口中被反复使用，那么可以在定义接口名的同时声明泛型变量：
+
+```ts
+interface IdentityFn<T> {
+    (arg: T[]): T[];
+};
+
+function identity<T>(arg: T[]): T[] {
+    console.log(arg.length);
+    return arg;
+}
+
+let myIdentity: IdentityFn<string> = identity;
+```
+
+在泛型接口之外，还可以使用泛型类，两者的形式非常类似：
+
+```ts
+class GenericNumber<T> {
+    zeroValue: T;
+    add: (x: T, y: T) => T;
+}
+```
+
+泛型也可以直接继承接口约束自己的行为：
+
+```ts
+interface Lengthwise {
+    length: number;
+}
+
+function loggingIdentity<T extends Lengthwise>(arg: T): T {
+    console.log(arg.length);
+    return arg;
+}
+```
+
+#### type inference
+
+TypeScript 主要有两种类型推断方式：Best Common Type 和 Contextual Type。我们先介绍 Best Common Type:
+
+```ts
+let x = [0, 1, null];
+```
+
+对于上面代码中的变量 x，如果要推断出它的类型，就必须充分考虑 `[0, 1, null]` 的类型，所以这里进行类型推断的顺序是从表达式的叶子到根的，也就是先推断变量 x 的值都包含什么类型，然后总结出 x 的类型，是一种从下往上的推断过程。
+
+TypeScript 的类型推论也可以按照从上往下的顺序进行，这被称为 **Contextual Type**：
+
+```ts
+window.onmousedown = function(mouseEvent) {
+    // Error: Property 'button' does not exist ontype 'MouseEvent'
+    console.log(mouseEvent.buton);  
+};
+```
+
+在上面的示例中，TypeScript 类型推断机制会通过 `window.onmousedown` 函数的类型来推断右侧函数表达式的类型，继而推断出 `mouseEvent` 的类型，这种从上到下的推断顺序就是 **Contextual Type** 的特征。
+
+这里只对 TypeScript 的特性做简单的介绍，更详细的资料请参考以下资料：
+
+- [TypeScript 官方文档](https://www.typescriptlang.org/docs/tutorial.html)
+- [TypeScript 中文文档](https://zhongsp.gitbooks.io/typescript-handbook/content/doc/handbook/Basic%20Types.html)
+- [TypeScript Language Specification](https://github.com/Microsoft/TypeScript/blob/master/doc/spec.md)
+
 ## React and Webpack
+
+在 TypeScript 中开发 React 时有以下几点注意事项：
+
+- 对 React 文件使用 `.tsx` 的扩展名
+- 在 tsconfig.json 中使用 `compilerOptions.jsx: 'react'`
+- 使用 typings 类型定义
+
+```js
+interface Props {
+    foo: string;
+}
+
+class MyComponent extends React.Component<Props, {}> {
+    render() {
+        return <span>{this.props.foo}</span>
+    }
+}
+
+<MyComponent foo="bar" />; // 正确
+```
 
 TypeScript 的官方文档中对 React 的开发做了一个简单的演示，主要包含以下几个部分：
 
@@ -43,7 +352,10 @@ TypeScript 的官方文档中对 React 的开发做了一个简单的演示，�
 
 具体的搭建流程可以参考文档 [React & Webpack](https://www.typescriptlang.org/docs/handbook/react-&-webpack.html)，此外，我个人写过一个 [TypeScript & Webpack & React 开发的最小化模板](https://github.com/pinggod/react-startkit/tree/typescript)可供各位参考，与之等同的 [Babel & Webpack & React 版本](https://github.com/pinggod/react-startkit/tree/babel)。
 
+> 如果查看模板之后对 `import * as React from 'react'` 的方式有所疑惑，请查看 TypeScript 的负责人 Anders Hejlsberg 在 [issue#2242](https://github.com/Microsoft/TypeScript/issues/2242#issuecomment-83694181) 中的详细解析。
+
 ###### 参考资料
 
 - [TypeScript Document](https://www.typescriptlang.org/docs/tutorial.html)
 - [What is TypeScript and why would I use it in place of JavaScript?](http://stackoverflow.com/questions/12694530/what-is-typescript-and-why-would-i-use-it-in-place-of-javascript)
+- [TypeScript 中文文档](https://zhongsp.gitbooks.io/typescript-handbook/content/doc/handbook/Basic%20Types.html)

@@ -395,7 +395,7 @@ x === y; // false
 
 ## 总结
 
-Immutable.js 所提供的 Immutable Data 和 JavaScript 固有的 Mutable Data 各有优势，未来 ECAMScript 有可能制定一套原生的 Immutable Data 规范，在这之前，Immutable.js 是一个不错的选择。之前已经写文章熟悉过 Lodash 这一工具库，Immutable 内部也封装了诸多常用的数据操作函数，所以如果让我来选择的话，在 React 技术栈中我会优先选择 Immutable，而放弃 Lodash。
+Immutable.js 所提供的 Immutable Data 和 JavaScript 固有的 Mutable Data 各有优势，未来 ECAMScript 有可能制定一套原生的 Immutable Data 规范，在这之前，Immutable.js 是一个不错的选择。之前已经写文章熟悉过 Lodash 这一工具库，Immutable 内部也封装了诸多常用的数据操作函数，所以从个人角度来看的话，在 React 技术栈中我会更偏爱 Immutable.js。
 
 ###### 参考资料
 

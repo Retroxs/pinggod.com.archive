@@ -6,7 +6,7 @@
 title: PINGGOD
 subtitle:
 description: 三年不翅，将以长羽翼；不飞不鸣，将以观民则。
-author: Sean Sun
+author: pinggod
 language: en
 timezone:
 
@@ -37,7 +37,7 @@ render_drafts: false
 post_asset_folder: false
 relative_link: false
 future: true
-highlight: 
+highlight:
     enable: true
     line_number: false
 

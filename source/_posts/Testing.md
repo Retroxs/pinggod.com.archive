@@ -103,8 +103,8 @@ test('Test Fibonacci(0)', t => {
 - `t.fail([message])`，测试失败
 - `t.truthy(value, [message])`，断言 `value` 的值为真值
 - `t.falsy(value, [message])`，断言 `value` 的值为假值
-- `t.truthy(value, [message])`，断言 `value` 的值为 `true`
-- `t.falsy(value, [message])`，断言 `value` 的值为 `false`
+- `t.true(value, [message])`，断言 `value` 的值为 `true`
+- `t.false(value, [message])`，断言 `value` 的值为 `false`
 - `t.is(value, expected, [message])`，断言 `value === expected`
 - `t.not(value, expected, [message])`，断言 `value !== expected`
 - `t.deepEqual(value, expected, [message])`，断言 `value` 和 `expected` 深度相等
